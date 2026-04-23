@@ -1,0 +1,4 @@
+sample_id,sample_path,condition,batch,species,use_soupx
+Case1,/path/to/Case1,Control,Batch1,human,TRUE
+Case2,/path/to/Case2,AD_CAA,Batch1,human,TRUE
+Case3,/path/to/Case3,Control,Batch1,human,FALSE
