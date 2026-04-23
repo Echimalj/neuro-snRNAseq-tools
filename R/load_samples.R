@@ -1,9 +1,3 @@
-check_required_packages(c(
-  "Seurat", "SeuratObject", "dplyr", "tibble",
-  "SoupX", "DoubletFinder", "sctransform", "harmony"
-))
-
-
 #' Load a single 10x sample with optional SoupX correction
 #'
 #' Utilities for loading 10x Genomics outputs into Seurat objects, either
