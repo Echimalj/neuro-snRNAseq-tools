@@ -30,6 +30,9 @@ A sample sheet CSV with:
 - `batch`
 - `species`
 - `SoupX ambient RNA removal required TRUE/FALSE`
+- `orig.ident`
+- `genotype`
+- `FDX`
 
 ## Notes
 This toolkit is designed to separate reusable preprocessing logic from project-specific biological analyses.
