@@ -224,7 +224,7 @@ merge_identity_labels <- function(seu,
 #' @return Subsetted Seurat object.
 #' @export
 save_subset_by_idents <- function(seu,
-                                  idents,
+                                  idents = NULL,
                                   file = NULL,
                                   group_col = NULL,
                                   groups = NULL) {
@@ -232,8 +232,14 @@ save_subset_by_idents <- function(seu,
     stop("Package 'Seurat' is required.", call. = FALSE)
   }
 
-  seu_sub <- subset(seu, idents = idents)
+  # If idents is NULL → keep all identities
+  seu_sub <- if (is.null(idents)) {
+    seu
+  } else {
+    subset(seu, idents = idents)
+  }
 
+  # Optional filtering by group
   if (!is.null(group_col) && !is.null(groups)) {
     if (!group_col %in% colnames(seu_sub@meta.data)) {
       stop("group_col not found in metadata: ", group_col, call. = FALSE)
