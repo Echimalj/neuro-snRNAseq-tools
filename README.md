@@ -30,9 +30,13 @@ The goal is to separate reusable computational workflows from project-specific b
 
 ## Key Features
 Modular design → each step is implemented as reusable functions
+
 Sample-sheet driven workflows → no hard-coded sample metadata
+
 Flexible preprocessing → optional SoupX, SCT, Harmony
+
 Memory-aware pipeline → supports checkpointing for large datasets
+
 Extensible → designed to integrate with downstream tools (CellChat, pseudobulk, etc.)
 
 ## Example workflow
