@@ -7,9 +7,8 @@ source("R/preprocess_utils.R")
 source("R/integration_utils.R")
 source("R/marker_utils.R")
 source("R/checkpoint_utils.R")
-
 source("R/annotation_utils.R")
-
+source("R/subcluster_utils.R")
 
 ###Check Dependencies
 check_required_packages(c(
@@ -170,7 +169,8 @@ save_marker_table(
 
 save_checkpoint(
   object = AD_CAA,
-  file = file.path(checkpoint_dir, "AD_CAA_before-annotation.rds")
+  file = file.path(checkpoint_dir, "AD_CAA_before-annotation.rds"),
+  reload = TRUE
 )
 
 ## Follow Intructions of the  `cluster_annotation_guide.md` then:
@@ -227,3 +227,74 @@ AD_CAA <- apply_cluster_labels(
   new_metadata_col = "celltype",
   set_idents = TRUE
 
+save_checkpoint(
+  object = AD_CAA,
+  file = file.path(checkpoint_dir, "AD_CAA_after-annotation.rds"),
+  reload = TRUE
+)
+
+#OPTIONAL: Subclustering
+  clusters_to_subcluster <- c(
+  "Astrocytes1",
+  "Astrocytes2",
+  "Microglia1",
+  "Microglia2",
+  "Vascular"
+)
+
+AD_CAA <- subcluster_selected_idents(
+  seu = AD_CAA,
+  clusters_to_subcluster = clusters_to_subcluster,
+  output_col = "subcluster",
+  original_col = "SCT_original_cluster",
+  resolution = 0.1,
+  dims = 1:20
+)
+
+AD_CAA <- set_idents_from_metadata(AD_CAA, "subcluster")
+
+cor_mat <- compute_identity_correlation(
+  seu = AD_CAA,
+  assay = "RNA",
+  slot = "data",
+  method = "pearson"
+)
+
+save_correlation_matrix(cor_mat, "Corr.mat.txt")
+plot_identity_correlation(cor_mat)
+
+#Merging similar subclusters
+  merge_map <- c(
+  "Astrocytes2" = "Astrocytes1",
+  "Astrocytes3" = "Astrocytes1",
+  "Astrocytes4" = "Astrocytes1",
+  "Astrocytes5" = "Astrocytes1",
+  "Astrocytes10" = "Astrocytes1",
+  "Astrocytes12" = "Astrocytes1",
+  "Astrocytes6" = "Astrocytes2",
+  "Astrocytes7" = "Astrocytes3",
+  "Astrocytes8" = "Astrocytes4",
+  "Astrocytes9" = "Astrocytes5",
+  "Astrocytes11" = "Astrocytes5",
+  "Microglia2" = "Microglia1",
+  "Microglia3" = "Microglia1",
+  "Microglia6" = "Microglia1",
+  "Microglia4" = "Microglia2",
+  "Microglia5" = "Microglia3",
+  "Microglia8" = "Microglia3",
+  "Microglia7" = "Microglia4",
+  "Microglia9" = "Microglia5"
+)
+
+AD_CAA <- merge_identity_labels(
+  seu = AD_CAA,
+  merge_map = merge_map,
+  metadata_col = "final_celltype",
+  set_idents = TRUE
+)
+
+save_checkpoint(
+  object = AD_CAA,
+  file = file.path(checkpoint_dir, "AD_CAA_after-subcluster.rds"),
+  reload = TRUE
+)
