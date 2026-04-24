@@ -6,6 +6,8 @@ source("R/doublet_utils.R")
 source("R/preprocess_utils.R")
 source("R/integration_utils.R")
 source("R/marker_utils.R")
+source("R/checkpoint_utils.R")
+
 
 ###Check Dependencies
 check_required_packages(c(
@@ -18,7 +20,8 @@ check_required_packages(c(
 check_required_packages(c(
   "SoupX"
 ))
-
+#Check Point Directory
+checkpoint_dir <- "checkpoints"
 
 ##Load Samples
 sample_sheet <- read.csv("human_sample_sheet.csv")
@@ -105,6 +108,12 @@ AD_CAA <- run_sct_pipeline(
 
 plot_clusters(AD_CAA)
 
+AD_CAA <- checkpoint(
+  object = AD_CAA,
+  file = file.path(checkpoint_dir, "AD_CAA_after_SCT.rds"),
+  reload = TRUE
+)
+  
 #Harmony Integration for Batch Correction
 AD_CAA <- run_harmony_clustering(
   seu = AD_CAA,
@@ -140,6 +149,11 @@ AD_CAA <- prepare_rna_for_markers(
   assay = "RNA",
   run_join_layers = TRUE
 )
+AD_CAA <- checkpoint(
+  object = AD_CAA,
+  file = file.path(checkpoint_dir, "AD_CAA_after_RNA_scaling.rds"),
+  reload = TRUE
+)
 
 AD_CAA_markers <- find_cluster_markers(
   seu = AD_CAA,
@@ -152,4 +166,7 @@ save_marker_table(
   file = "AD_CAA_cluster_markers.txt"
 )
 
-
+save_checkpoint(
+  object = AD_CAA,
+  file = file.path(checkpoint_dir, "AD_CAA_before-annotation.rds")
+)
