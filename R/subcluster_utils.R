@@ -214,3 +214,199 @@ merge_identity_labels <- function(seu,
 
   return(seu)
 }
+
+#' Save a Seurat subset by identity
+#'
+#' @param seu Seurat object.
+#' @param idents Character vector of identities to subset.
+#' @param file Output RDS file.
+#'
+#' @return Subsetted Seurat object.
+#' @export
+save_subset_by_idents <- function(seu,
+                                  idents,
+                                  file = NULL) {
+  seu_sub <- subset(seu, idents = idents)
+
+  if (!is.null(file)) {
+    dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
+    saveRDS(seu_sub, file = file)
+    message("Saved subset: ", file)
+  }
+
+  return(seu_sub)
+}
+
+#' Run standalone subcluster workflow
+#'
+#' @param seu_sub Subsetted Seurat object.
+#' @param assay Input assay.
+#' @param resolution Clustering resolution.
+#' @param dims Dimensions to use.
+#' @param npcs Number of PCs.
+#' @param vst_flavor SCTransform flavor.
+#'
+#' @return Processed Seurat subset.
+#' @export
+run_standalone_subcluster_workflow <- function(seu_sub,
+                                               assay = "RNA",
+                                               resolution = 0.6,
+                                               dims = 1:20,
+                                               npcs = 20,
+                                               vst_flavor = "v2") {
+  if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Package 'Seurat' is required.", call. = FALSE)
+  }
+  if (!requireNamespace("sctransform", quietly = TRUE)) {
+    stop("Package 'sctransform' is required.", call. = FALSE)
+  }
+
+  Seurat::DefaultAssay(seu_sub) <- assay
+
+  seu_sub <- Seurat::SCTransform(
+    seu_sub,
+    vst.flavor = vst_flavor,
+    verbose = FALSE
+  )
+
+  seu_sub <- Seurat::RunPCA(
+    seu_sub,
+    npcs = npcs,
+    verbose = FALSE
+  )
+
+  seu_sub <- Seurat::RunUMAP(
+    seu_sub,
+    reduction = "pca",
+    dims = dims,
+    verbose = FALSE
+  )
+
+  seu_sub <- Seurat::FindNeighbors(
+    seu_sub,
+    reduction = "pca",
+    dims = dims,
+    verbose = FALSE
+  )
+
+  seu_sub <- Seurat::FindClusters(
+    seu_sub,
+    resolution = resolution,
+    verbose = FALSE
+  )
+
+  return(seu_sub)
+}
+
+#' Save UMAP plots for a Seurat object
+#'
+#' @param seu Seurat object.
+#' @param file Output EPS/PDF/PNG file.
+#' @param split_by Optional metadata column to split by.
+#' @param width Plot width.
+#' @param height Plot height.
+#' @param label Logical. Whether to label clusters.
+#' @param pt_size Point size.
+#'
+#' @return Invisibly returns file path.
+#' @export
+save_umap_plot <- function(seu,
+                           file,
+                           split_by = NULL,
+                           width = 6,
+                           height = 6,
+                           label = FALSE,
+                           pt_size = 0.5,
+                           reduction = "umap") {
+  if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Package 'Seurat' is required.", call. = FALSE)
+  }
+
+  grDevices::cairo_ps(filename = file, width = width, height = height)
+
+  print(
+    Seurat::DimPlot(
+      seu,
+      reduction = reduction,
+      label = label,
+      split.by = split_by,
+      pt.size = pt_size
+    )
+  )
+
+  grDevices::dev.off()
+
+  invisible(file)
+}
+
+#' Prepare subset RNA assay and find markers
+#'
+#' @param seu_sub Seurat object.
+#' @param assay Assay to use.
+#' @param only_pos Logical. Passed to FindAllMarkers.
+#' @param output_file Optional output file.
+#'
+#' @return Marker table.
+#' @export
+find_subset_cluster_markers <- function(seu_sub,
+                                        assay = "RNA",
+                                        only_pos = TRUE,
+                                        output_file = NULL) {
+  if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Package 'Seurat' is required.", call. = FALSE)
+  }
+
+  Seurat::DefaultAssay(seu_sub) <- assay
+
+  seu_sub <- Seurat::NormalizeData(seu_sub, verbose = FALSE)
+  seu_sub <- Seurat::FindVariableFeatures(seu_sub, verbose = FALSE)
+  seu_sub <- Seurat::ScaleData(seu_sub, features = rownames(seu_sub), verbose = FALSE)
+
+  if ("JoinLayers" %in% getNamespaceExports("Seurat")) {
+    seu_sub <- Seurat::JoinLayers(seu_sub)
+  }
+
+  markers <- Seurat::FindAllMarkers(seu_sub, only.pos = only_pos)
+
+  if (!is.null(output_file)) {
+    write.table(
+      markers,
+      file = output_file,
+      sep = "\t",
+      quote = FALSE,
+      row.names = FALSE
+    )
+  }
+
+  return(markers)
+}
+
+#' Run propeller on a subclustered subset
+#'
+#' @param seu_sub Seurat object.
+#' @param sample_col Sample metadata column.
+#' @param group_col Group metadata column.
+#' @param output_file Optional CSV output file.
+#'
+#' @return Propeller result.
+#' @export
+run_subset_propeller <- function(seu_sub,
+                                 sample_col = "orig.ident",
+                                 group_col = "Genotype",
+                                 output_file = NULL) {
+  if (!requireNamespace("speckle", quietly = TRUE)) {
+    stop("Package 'speckle' is required.", call. = FALSE)
+  }
+
+  prop <- speckle::propeller(
+    clusters = Seurat::Idents(seu_sub),
+    sample = seu_sub[[sample_col]][, 1],
+    group = seu_sub[[group_col]][, 1]
+  )
+
+  if (!is.null(output_file)) {
+    write.csv(prop, file = output_file)
+  }
+
+  return(prop)
+}
