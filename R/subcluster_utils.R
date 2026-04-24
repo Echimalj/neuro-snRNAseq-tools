@@ -434,3 +434,19 @@ run_subset_propeller <- function(seu_sub,
 
   return(prop)
 }
+
+#' Filter posthoc propeller results for one cluster
+#'
+#' @param posthoc_df Output from run_propeller_posthoc().
+#' @param cluster Cluster/cell type to keep.
+#'
+#' @return Filtered posthoc table.
+#' @export
+filter_propeller_posthoc_cluster <- function(posthoc_df, cluster) {
+  if (!"cluster" %in% colnames(posthoc_df)) {
+    stop("posthoc_df must contain a 'cluster' column.", call. = FALSE)
+  }
+
+  posthoc_df |>
+    dplyr::filter(.data$cluster == cluster)
+}
