@@ -3,7 +3,7 @@ source("R/module_score_utils.R")
 source("R/differential_expression_utils.R")
 source("R/speckle_utils.R")
 source("R/subcluster_utils.R") #Advanced Functions
-
+source("R/atlas_similarity_utils.R")
 
 check_required_packages(c(
   "Seurat",
@@ -194,4 +194,55 @@ saveRDS(
   AD_CAA_Astro,
   file = "checkpoints/AD_CAA_Astro_2025.rds"
 )
+
+#Cosine Similarity Report
+check_required_packages(c(
+  "Seurat",
+  "Matrix",
+  "dplyr",
+  "tibble",
+  "ggplot2"
+))
+
+AD_CAA_Astro <- readRDS("checkpoints/AD_CAA_Astro_2025.rds")
+
+saddick_gene_sets <- list(
+  Synapse = gene_list0,
+  Oxidative_Stress_AB_Trafficking = gene_list1,
+  ECM_Protective = gene_list2,
+  Inflammatory = gene_list3,
+  Synapse_Glutamate = gene_list4,
+  ECM_Actin_Protective = gene_list5,
+  Glutamate_Metallothioneins = gene_list6,
+  Apoptosis_DNA_Damage = gene_list7,
+  Synapse_2 = gene_list8
+)
+
+similarity_results <- run_atlas_similarity_list(
+  seurat_object = AD_CAA_Astro,
+  gene_sets = saddick_gene_sets,
+  cluster_column = "seurat_clusters",
+  assay = "RNA",
+  layer = "data",
+  n_null = 1000
+)
+
+save_atlas_similarity_results(
+  similarity_results = similarity_results,
+  output_dir = "results/atlas_similarity",
+  prefix = "AD_CAA_Astro_Saddick"
+)
+
+#Single gene set:
+res_synapse <- cluster_marker_cosine_similarity(
+  seurat_object = AD_CAA_Astro,
+  gene_list = gene_list0,
+  cluster_column = "seurat_clusters",
+  assay = "RNA",
+  layer = "data",
+  n_null = 1000
+)
+
+plot_cosine_similarity(res_synapse$similarity_table)
+
 
