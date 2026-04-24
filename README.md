@@ -61,29 +61,40 @@ A sample sheet CSV (.csv) with:
   
 ## Repository Structure
 
-docs/
-  cellranger_pipeline.md
-  cluster_annotation_guide.md
+## Repository Structure
 
-scripts/
-  human_ad_caa_pipeline.R
-  advanced_analysis_examples.R
-  cellranger_slurm_template.sh
-
-R/
-  load_samples.R
-  metadata_utils.R
-  qc_utils.R
-  doublet_utils.R
-  preprocess_utils.R
-  integration_utils.R
-  marker_utils.R
-  annotation_utils.R
-  subcluster_utils.R
-  speckle_utils.R
-  module_score_utils.R
-  differential_expression_utils.R
-  checkpoint_utils.R
+```text
+neuro-snRNAseq-tools/
+├── R/                                   # Core reusable R modules
+│   ├── load_samples.R                   # 10x loading + optional SoupX correction
+│   ├── metadata_utils.R                 # Sample sheet metadata integration
+│   ├── qc_utils.R                       # QC metrics + filtering
+│   ├── doublet_utils.R                  # DoubletFinder workflow (per-sample)
+│   ├── preprocess_utils.R               # SCTransform + PCA + clustering
+│   ├── integration_utils.R              # Harmony integration + clustering
+│   ├── marker_utils.R                   # Marker detection + RNA assay prep
+│   ├── annotation_utils.R               # Manual cluster relabeling
+│   ├── subcluster_utils.R               # Targeted subclustering + correlation merging
+│   ├── speckle_utils.R                  # Cell proportion testing (propeller)
+│   ├── module_score_utils.R             # Gene module scoring (DAA, DAM, DAO, etc.)
+│   ├── differential_expression_utils.R  # Two-group DE analysis (global + per cell type)
+│   └── checkpoint_utils.R               # Memory-safe save/load checkpoints
+│
+├── scripts/                             # Example workflows
+│   ├── human_ad_caa_pipeline.R          # End-to-end preprocessing pipeline
+│   ├── advanced_analysis_examples.R     # Module scoring + DE + downstream analyses
+│   └── cellranger_slurm_template.sh     # HPC/Slurm Cell Ranger pipeline
+│
+├── docs/                                # Documentation
+│   ├── cellranger_pipeline.md           # HPC Cell Ranger workflow guide
+│   └── cluster_annotation_guide.md      # Manual cluster annotation strategy
+│
+├── checkpoints/                         # (Optional) Saved intermediate objects
+├── results/                             # (Optional) Output results (markers, DE, etc.)
+│
+├── README.md                            # Project overview and usage
+└── .gitignore                           # Ignore large files / outputs
+```
 
 
 ## Documentation
