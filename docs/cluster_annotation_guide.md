@@ -1,6 +1,7 @@
 # Cluster Annotation Guide
 
-This document describes the workflow used to annotate clusters i.e. human snRNA-seq data (AD/CAA dataset).
+
+This document describes the workflow used to annotate clusters in human snRNA-seq data using the AD/CAA dataset as an example.
 
 ---
 
@@ -13,7 +14,8 @@ Cluster annotation was performed using:
 - Reference atlases:
   - Azimuth Cell Types 2021 (primary)
   - Allen Brain Atlas scRNA-seq 2021
-  - Tabula Sapiens (secondary validation) - Tabula Muris (For Mouse Experiments)
+  - Tabula Sapiens (secondary validation for human datasets)
+  - Tabula Muris (secondary validation for mouse datasets)
 
 ---
 
@@ -126,3 +128,104 @@ AD_CAA$seurat_clusters,
 from = names(cluster_ids),
 to = cluster_ids
 )
+```
+
+---
+
+## Step 6: Annotation QC Plots
+
+After applying manual annotations, generate UMAP and marker-expression plots to confirm that broad cell classes and canonical markers are biologically consistent.
+
+### 6.1 UMAP of collapsed cell classes
+
+```r
+# Save UMAP without split
+cairo_ps(filename = "UMAP-ADCAA-CTRL_Nosplit.eps", width = 14, height = 8)
+DimPlot(
+  AD_CAA,
+  reduction = "umap",
+  label = TRUE,
+  pt.size = 0.5
+)
+dev.off()
+
+# Save UMAP split by disease group
+cairo_ps(filename = "UMAP-ADCAA-CTRL.eps", width = 18, height = 8)
+DimPlot(
+  AD_CAA,
+  reduction = "umap",
+  label = FALSE,
+  split.by = "FDX",
+  pt.size = 0.5
+)
+dev.off()
+```
+### 6.2 Cannonical Marker Plot 
+
+```r
+markers.to.plot <- c(
+  "GRIN2A", "RBFOX3", "SLC17A7", "SYN3",        # Excitatory neurons
+  "GAD1", "GAD2",                              # Inhibitory neurons
+  "GJA1", "SLC1A3", "SLC1A2", "GFAP",         # Astrocytes
+  "MBP", "PLP1", "MOBP", "MOG",               # Oligodendrocytes
+  "VCAN", "NXPH1",                             # OPCs
+  "INPP5D", "CSF1R", "TGFBR1", "TREM2",       # Microglia
+  "VIM", "COL1A2",                             # Fibroblast-like cells
+  "FLT1", "CLDN5",                             # Endothelial cells
+  "PDGFRB", "KCNJ8",                           # Pericytes
+  "ACTA2", "TAGLN",                            # Smooth muscle cells
+  "PDGFRA", "DCN"                              # VLMC / meningeal-associated cells
+)
+
+markers.to.plot <- unique(markers.to.plot)
+
+desired_order <- c(
+  "ExNeuron",
+  "InhNeuron",
+  "Astrocytes",
+  "Oligodendrocytes",
+  "OPC",
+  "Microglia",
+  "Fibroblast",
+  "Endothelial",
+  "Pericytes",
+  "SMC",
+  "VLMC"
+)
+AD_CAA$cellclass <- as.character(Idents(AD_CAA))
+
+AD_CAA$cellclass <- factor(
+  AD_CAA$cellclass,
+  levels = rev(desired_order)
+)
+
+Idents(AD_CAA) <- AD_CAA$cellclass
+
+cairo_ps(filename = "ClusterFeatureMarkers-CollapsedAD_CAAProject.eps", width = 15, height = 4)
+DotPlot(
+  AD_CAA,
+  scale = TRUE,
+  features = markers.to.plot,
+  dot.min = 0.05
+) +
+  RotatedAxis() +
+  scale_colour_gradient2(
+    low = "#298c8c",
+    mid = "#b8b8b8",
+    high = "#a00000"
+  )
+dev.off()
+```
+### 6.3 Interpretation
+
+Use these plots to verify that:
+
+Excitatory neurons express markers such as SLC17A7, GRIN2A, SYN3
+Inhibitory neurons express GAD1 and GAD2
+Astrocytes express GFAP, GJA1, SLC1A2, SLC1A3
+Oligodendrocytes express MBP, PLP1, MOBP, MOG
+OPCs express VCAN and NXPH1
+Microglia express INPP5D, CSF1R, TREM2
+Vascular-associated populations show expected endothelial, pericyte, SMC, and VLMC markers
+
+These plots provide a final manual quality-control step before downstream analyses such as subclustering, differential expression, module scoring, or cell-cell communication analysis.
