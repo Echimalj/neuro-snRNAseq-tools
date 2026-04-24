@@ -8,22 +8,35 @@ Reusable functions for single-nucleus RNA-seq analysis:
 🚧 Work in progress
 
 
-Reusable utilities for preprocessing and analyzing single-nucleus RNA-seq datasets in Seurat.
+Reusable, modular workflows for preprocessing and analyzing single-nucleus RNA-seq (snRNA-seq) data using Seurat.
 
-## Included functionality
-- 10x sample loading with SoupX ambient RNA correction
-- sample-sheet-based metadata annotation
-- QC metric calculation and filtering
-- DoubletFinder wrapper for per-sample doublet detection
-- SCTransform preprocessing
-- Harmony-based integration and clustering
-- RNA assay preparation for marker detection
+## Overview
+
+This repository provides a set of reusable functions to streamline common steps in single-nucleus RNA-seq analysis, including:
+
+- Data loading (10x Genomics, with optional SoupX correction)
+- Metadata integration via sample sheets
+- Quality control and filtering
+- Doublet detection
+- SCTransform-based normalization
+- Batch correction with Harmony
+- Clustering and visualization
+- Marker gene identification
+
+The goal is to separate reusable computational workflows from project-specific biological analyses, enabling reproducibility and scalability across datasets.
+
+##Key Features
+Modular design → each step is implemented as reusable functions
+Sample-sheet driven workflows → no hard-coded sample metadata
+Flexible preprocessing → optional SoupX, SCT, Harmony
+Memory-aware pipeline → supports checkpointing for large datasets
+Extensible → designed to integrate with downstream tools (CellChat, pseudobulk, etc.)
 
 ## Example workflow
 See `scripts/human_ad_caa_pipeline.R` for a full example using a human AD/CAA dataset.
 
 ## Expected input
-A sample sheet CSV with:
+A sample sheet CSV (.csv) with:
 - `sample_id`
 - `sample_path`
 - `condition`
@@ -33,6 +46,21 @@ A sample sheet CSV with:
 - `orig.ident`
 - `genotype`
 - `FDX`
+- any additional metadata fields (automatically added to Seurat object)
+  
+##Documentation
+
+Cluster annotation workflow:
+
+docs/cluster_annotation_guide.md
+
+##Design Philosophy
+
+This toolkit is designed around three principles:
+
+Reproducibility → eliminate hard-coded logic
+Modularity → each step is independently reusable
+Scalability → compatible with large snRNA-seq datasets and HPC environments
 
 ## Notes
 This toolkit is designed to separate reusable preprocessing logic from project-specific biological analyses.
