@@ -9,6 +9,7 @@ source("R/marker_utils.R")
 source("R/checkpoint_utils.R")
 source("R/annotation_utils.R")
 source("R/subcluster_utils.R")
+source("R/speckle_utils.R")
 
 ###Check Dependencies
 check_required_packages(c(
@@ -175,6 +176,11 @@ save_checkpoint(
 
 ## Follow Intructions of the  `cluster_annotation_guide.md` then:
 
+check_required_packages(c(
+  "plyr",
+  "pheatmap"
+))
+
 #Set labels for annotated clusters
 new_cluster_ids <- c(
   "Oligodendrocytes1",
@@ -297,4 +303,54 @@ save_checkpoint(
   object = AD_CAA,
   file = file.path(checkpoint_dir, "AD_CAA_after-subcluster.rds"),
   reload = TRUE
+)
+
+#Cell Proportions Speckle 
+
+check_required_packages(c("speckle", "limma"))
+
+prop_all <- run_propeller(
+  seu = AD_CAA,
+  sample_col = "orig.ident",
+  group_col = "FDX"
+)
+
+neuron_idents <- c(
+  "ExNeuron1", "ExNeuron2", "ExNeuron3", "ExNeuron4", "ExNeuron5",
+  "ExNeuron6", "ExNeuron7", "ExNeuron8", "ExNeuron9", "ExNeuron10",
+  "ExNeuron11", "ExNeuron12", "ExNeuron13", "ExNeuron14",
+  "InhNeuron1", "InhNeuron2", "InhNeuron3", "InhNeuron4", "InhNeuron5"
+)
+
+other_idents <- c(
+  "Oligodendrocytes1", "Oligodendrocytes2", "Oligodendrocytes3",
+  "Oligodendrocytes4", "Oligodendrocytes5", "Oligodendrocytes6",
+  "Oligodendrocytes7", "Oligodendrocytes8",
+  "OPC1", "OPC2", "OPC3",
+  "SMC", "Astrocytes1", "Astrocytes2", "Astrocytes3",
+  "Astrocytes4", "Astrocytes5",
+  "Microglia1", "Microglia2", "Microglia3", "Microglia4", "Microglia5",
+  "Endothelial", "VLMC1", "VLMC2", "Pericytes", "Fibroblast"
+)
+
+prop_sets <- run_propeller_sets(
+  seu = AD_CAA,
+  identity_sets = list(
+    Neurons = neuron_idents,
+    Other = other_idents
+  ),
+  sample_col = "orig.ident",
+  group_col = "FDX"
+)
+
+save_propeller_results(
+  propeller_results = prop_all,
+  output_dir = "results",
+  prefix = "CellTypeProportionsALL_ADCAAvsCTRL"
+)
+
+save_propeller_results(
+  propeller_results = prop_sets,
+  output_dir = "results",
+  prefix = "CellTypeProportions_ADCAAvsCTRL"
 )
