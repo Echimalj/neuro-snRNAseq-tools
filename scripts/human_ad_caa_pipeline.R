@@ -1,6 +1,7 @@
 source("R/check_dependencies.R")
 source("R/load_samples.R")
 source("R/metadata_utils.R")
+source("R/qc_utils.R")
 
 check_required_packages(c(
   "Seurat",
@@ -34,3 +35,27 @@ AD_CAA <- merge_seurat_samples(
 
 summarize_cells_by_group(AD_CAA, group_col = "orig.ident")
 summarize_cells_by_group(AD_CAA, group_col = "condition")
+
+
+AD_CAA <- add_qc_metrics(
+  seu = AD_CAA,
+  species = "human",
+  add_ribo = FALSE,
+  add_hb = FALSE
+)
+
+plot_basic_qc(AD_CAA)
+
+AD_CAA_before_qc <- AD_CAA
+
+AD_CAA <- filter_cells_basic(
+  seu = AD_CAA,
+  min_features = 200,
+  max_mt = 1
+)
+
+summarize_filtering(
+  before = AD_CAA_before_qc,
+  after = AD_CAA,
+  group_col = "orig.ident"
+)
