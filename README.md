@@ -7,6 +7,9 @@ Reusable functions for single-nucleus RNA-seq analysis:
 
 🚧 Work in progress
 
+![R](https://img.shields.io/badge/R-4.x-blue)
+![Seurat](https://img.shields.io/badge/Seurat-v5-green)
+![Status](https://img.shields.io/badge/status-in%20progress-orange)
 
 Reusable, modular workflows for preprocessing and analyzing single-nucleus RNA-seq (snRNA-seq) data using Seurat.
 
