@@ -55,13 +55,13 @@ A sample sheet CSV (.csv) with:
 - `FDX`
 - any additional metadata fields (automatically added to Seurat object)
   
-##Documentation
+## Documentation
 
 Cluster annotation workflow:
 
 docs/cluster_annotation_guide.md
 
-##Design Philosophy
+## Design Philosophy
 
 This toolkit is designed around three principles:
 
