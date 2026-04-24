@@ -2,6 +2,8 @@ source("R/check_dependencies.R")
 source("R/module_score_utils.R")
 source("R/differential_expression_utils.R")
 source("R/speckle_utils.R")
+source("R/subcluster_utils.R") #Advanced Functions
+
 
 check_required_packages(c(
   "Seurat",
@@ -112,6 +114,84 @@ de_results <- lapply(celltypes_to_test, function(ct) {
 
 names(de_results) <- celltypes_to_test
 
+#Advanced Subclustering functions
+check_required_packages(c(
+  "Seurat",
+  "sctransform",
+  "speckle",
+  "ggplot2"
+))
 
+#Subset by idents 
+astro_idents <- c(
+  "Astrocytes1",
+  "Astrocytes2",
+  "Astrocytes3",
+  "Astrocytes4",
+  "Astrocytes5"
+)
 
+AD_CAA_Astro <- save_subset_by_idents(
+  seu = AD_CAA,
+  idents = astro_idents,
+  file = "checkpoints/AD_CAA_Astro_raw_subset.rds"
+)
+
+#Re-run subclustering for finer astrocyte states, and clean UMAP
+AD_CAA_Astro <- run_standalone_subcluster_workflow(
+  seu_sub = AD_CAA_Astro,
+  assay = "RNA",
+  resolution = 0.6,
+  dims = 1:20,
+  npcs = 20
+)
+
+save_umap_plot(
+  seu = AD_CAA_Astro,
+  file = "figures/UMAP_ADCAA_astrocytes.eps",
+  width = 6,
+  height = 6,
+  label = FALSE
+)
+
+save_umap_plot(
+  seu = AD_CAA_Astro,
+  file = "figures/UMAP_ADCAA_astrocytes_split.eps",
+  split_by = "FDX",
+  width = 14,
+  height = 6,
+  label = FALSE
+#Correlation Matrix to merge similar subclusters
+cor_mat <- compute_identity_correlation(
+  seu = AD_CAA_Astro,
+  assay = "RNA",
+  slot = "data"
+)
+
+save_correlation_matrix(
+  cor_mat,
+  "results/AD_CAA_Astro_correlation.txt"
+)
+
+plot_identity_correlation(cor_mat))
+
+#Find Markers & Propeller
+AD_CAA_Astro_markers <- find_subset_cluster_markers(
+  seu_sub = AD_CAA_Astro,
+  assay = "RNA",
+  only_pos = TRUE,
+  output_file = "results/AD_CAA_Astro.clusterDEGs.txt"
+)
+
+Prop_Astro <- run_subset_propeller(
+  seu_sub = AD_CAA_Astro,
+  sample_col = "orig.ident",
+  group_col = "FDX",
+  output_file = "results/CellTypeProportions_ADCAA_Astro.csv"
+)
+
+saveRDS(
+  AD_CAA_Astro,
+  file = "checkpoints/AD_CAA_Astro_2025.rds"
+)
 
