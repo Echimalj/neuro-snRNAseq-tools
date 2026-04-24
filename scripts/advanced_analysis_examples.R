@@ -4,6 +4,7 @@ source("R/differential_expression_utils.R")
 source("R/speckle_utils.R")
 source("R/subcluster_utils.R") #Advanced Functions
 source("R/atlas_similarity_utils.R")
+source("R/annotation_utils.R") #Advanced Functions
 
 check_required_packages(c(
   "Seurat",
@@ -244,5 +245,37 @@ res_synapse <- cluster_marker_cosine_similarity(
 )
 
 plot_cosine_similarity(res_synapse$similarity_table)
+
+
+#Collapse cellclass:
+AD_CAA$cellclass <- as.character(Idents(AD_CAA))
+
+AD_CAA <- add_collapsed_cellclass(
+  seu = AD_CAA,
+  input_col = "cellclass",
+  output_col = "collapsed_cellclass",
+  keep = character(),
+  set_idents = FALSE
+)
+
+table(AD_CAA$collapsed_cellclass)
+table(AD_CAA$collapsed_cellclass, AD_CAA$FDX)
+
+#If want to keep any identity separate i.e. merge all ExNeuron except ExNeuron3
+AD_CAA <- add_collapsed_cellclass(
+  seu = AD_CAA,
+  input_col = "cellclass",
+  output_col = "collapsed_cellclass",
+  keep = c("ExNeuron3"),
+  set_idents = FALSE
+)
+#If you want to use broad classes as active identities
+AD_CAA <- add_collapsed_cellclass(
+  seu = AD_CAA,
+  input_col = "cellclass",
+  output_col = "collapsed_cellclass",
+  keep = character(),
+  set_idents = TRUE
+)
 
 
