@@ -28,7 +28,7 @@ This repository provides a set of reusable functions to streamline common steps 
 
 The goal is to separate reusable computational workflows from project-specific biological analyses, enabling reproducibility and scalability across datasets.
 
-##Key Features
+## Key Features
 Modular design → each step is implemented as reusable functions
 Sample-sheet driven workflows → no hard-coded sample metadata
 Flexible preprocessing → optional SoupX, SCT, Harmony
