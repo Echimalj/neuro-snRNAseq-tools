@@ -2,7 +2,9 @@ source("R/check_dependencies.R")
 source("R/load_samples.R")
 source("R/metadata_utils.R")
 source("R/qc_utils.R")
+source("R/doublet_utils.R")
 
+###Check Dependencies
 check_required_packages(c(
   "Seurat",
   "SeuratObject",
@@ -14,6 +16,8 @@ check_required_packages(c(
   "SoupX"
 ))
 
+
+##Load Samples
 sample_sheet <- read.csv("human_sample_sheet.csv")
 
 seurat_list <- load_samples_from_sheet(
@@ -23,6 +27,7 @@ seurat_list <- load_samples_from_sheet(
   use_soupx = TRUE
 )
 
+##Annotate Metadata
 seurat_list <- annotate_samples_from_sheet(
   seurat_list = seurat_list,
   sample_sheet = sample_sheet
@@ -36,7 +41,7 @@ AD_CAA <- merge_seurat_samples(
 summarize_cells_by_group(AD_CAA, group_col = "orig.ident")
 summarize_cells_by_group(AD_CAA, group_col = "condition")
 
-
+##QC metrics 
 AD_CAA <- add_qc_metrics(
   seu = AD_CAA,
   species = "human",
@@ -59,3 +64,22 @@ summarize_filtering(
   after = AD_CAA,
   group_col = "orig.ident"
 )
+
+##Doublet Finder
+check_required_packages(c(
+  "DoubletFinder"
+  ))
+
+AD_CAA <- annotate_doublets_by_sample(
+  seu = AD_CAA,
+  split_by = "orig.ident",
+  assay = "RNA",
+  sct = FALSE,
+  resolution = 0.1
+)
+
+summarize_doublets(AD_CAA, group_col = "orig.ident")
+
+AD_CAA <- keep_singlets(AD_CAA)
+
+
