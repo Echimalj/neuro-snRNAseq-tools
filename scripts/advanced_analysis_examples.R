@@ -200,12 +200,24 @@ AD_CAA_Astro_markers <- find_subset_cluster_markers(
   output_file = "results/AD_CAA_Astro.clusterDEGs.txt"
 )
 
+
 Prop_Astro <- run_subset_propeller(
   seu_sub = AD_CAA_Astro,
   sample_col = "orig.ident",
   group_col = "FDX",
   output_file = "results/CellTypeProportions_ADCAA_Astro.csv"
 )
+#Propeller for more than 2 will generate an ANOVA, for Post hoc:
+#For AD_CAA, this is only two groups, so regular run_propeller()
+#is usually enough. But if you later have Control, AD, AD+CAA, or multiple pathology groups
+posthoc_adcaa <- run_propeller_posthoc(
+  seu = AD_CAA,
+  sample_col = "orig.ident",
+  group_col = "FDX",
+  group_levels = c("Control", "AD", "AD+CAA")
+)
+filter_propeller_posthoc_cluster(posthoc_exneurons, "ExNeuron6")
+
 
 saveRDS(
   AD_CAA_Astro,
