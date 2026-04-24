@@ -59,11 +59,55 @@ A sample sheet CSV (.csv) with:
 - `FDX`
 - any additional metadata fields (automatically added to Seurat object)
   
+## Repository Structure
+
+docs/
+  cellranger_pipeline.md
+  cluster_annotation_guide.md
+
+scripts/
+  human_ad_caa_pipeline.R
+  advanced_analysis_examples.R
+  cellranger_slurm_template.sh
+
+R/
+  load_samples.R
+  metadata_utils.R
+  qc_utils.R
+  doublet_utils.R
+  preprocess_utils.R
+  integration_utils.R
+  marker_utils.R
+  annotation_utils.R
+  subcluster_utils.R
+  speckle_utils.R
+  module_score_utils.R
+  differential_expression_utils.R
+  checkpoint_utils.R
+
+
 ## Documentation
 
-Cluster annotation workflow:
+- `docs/cellranger_pipeline.md`  
+  HPC/Slurm workflow for running Cell Ranger on multiple samples using job arrays.
 
-docs/cluster_annotation_guide.md
+- `docs/cluster_annotation_guide.md`  
+  Manual cluster annotation strategy using marker genes, enrichment resources, and reference atlases.
+
+## Advanced Analysis Workflows
+
+In addition to preprocessing, this repository includes utilities for downstream biological analyses:
+
+- Disease-associated gene module scoring
+- Cell-type-specific module score visualization
+- Percentage of cells expressing module genes
+- Two-group differential expression analysis
+
+
+See:
+
+`scripts/advanced_analysis_examples.R`
+
 
 ## Design Philosophy
 
