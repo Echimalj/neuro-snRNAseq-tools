@@ -138,7 +138,21 @@ AD_CAA_Astro <- save_subset_by_idents(
   file = "checkpoints/AD_CAA_Astro_raw_subset.rds"
 )
 #NOTE: This can also subset by Genotype or by FDX:
+AD_CAA_AD <- save_subset_by_idents(
+  seu = AD_CAA,
+  idents = NULL,
+  group_col = "FDX",
+  groups = "AD+CAA",
+  file = "checkpoints/AD_CAA_ADCAA_only.rds"
+)
 
+AD_CAA_Control <- save_subset_by_idents(
+  seu = AD_CAA,
+  idents = NULL,
+  group_col = "FDX",
+  groups = "Control",
+  file = "checkpoints/AD_CAA_Control_only.rds"
+)
 
 #Re-run subclustering for finer astrocyte states, and clean UMAP
 AD_CAA_Astro <- run_standalone_subcluster_workflow(
