@@ -11,3 +11,10 @@ check_required_packages(c(
 ))
 
 AD_CAA <- readRDS("checkpoints/AD_CAA_final_processed.rds")
+
+
+save_propeller_results(
+  propeller_results = prop_sets,
+  output_dir = "results",
+  prefix = "CellTypeProportions_ADCAAvsCTRL"
+)
