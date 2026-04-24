@@ -8,6 +8,8 @@ source("R/integration_utils.R")
 source("R/marker_utils.R")
 source("R/checkpoint_utils.R")
 
+source("R/annotation_utils.R")
+
 
 ###Check Dependencies
 check_required_packages(c(
@@ -170,3 +172,58 @@ save_checkpoint(
   object = AD_CAA,
   file = file.path(checkpoint_dir, "AD_CAA_before-annotation.rds")
 )
+
+## Follow Intructions of the  `cluster_annotation_guide.md` then:
+
+#Set labels for annotated clusters
+new_cluster_ids <- c(
+  "Oligodendrocytes1",
+  "ExNeuron1",
+  "Oligodendrocytes2",
+  "Oligodendrocytes3",
+  "Oligodendrocytes4",
+  "Astrocytes1",
+  "ExNeuron2",
+  "ExNeuron3",
+  "Astrocytes2",
+  "ExNeuron4",
+  "InhNeuron1",
+  "Oligodendrocytes5",
+  "InhNeuron2",
+  "InhNeuron3",
+  "Microglia1",
+  "OPC1",
+  "ExNeuron5",
+  "ExNeuron6",
+  "ExNeuron7",
+  "Oligodendrocytes6",
+  "ExNeuron8",
+  "Oligodendrocytes7",
+  "Microglia2",
+  "ExNeuron9",
+  "Oligodendrocytes8",
+  "ExNeuron10",
+  "OPC2",
+  "InhNeuron4",
+  "InhNeuron5",
+  "Vascular",
+  "Endothelial",
+  "ExNeuron11",
+  "ExNeuron12",
+  "ExNeuron13",
+  "ExNeuron14",
+  "OPC3",
+  "Astrocytes3"
+)
+
+new_cluster_ids <- make_cluster_label_vector(
+  labels = new_cluster_ids,
+  cluster_levels = levels(AD_CAA)
+)
+
+AD_CAA <- apply_cluster_labels(
+  seu = AD_CAA,
+  cluster_labels = new_cluster_ids,
+  new_metadata_col = "celltype",
+  set_idents = TRUE
+
