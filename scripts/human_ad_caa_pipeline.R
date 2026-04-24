@@ -3,6 +3,9 @@ source("R/load_samples.R")
 source("R/metadata_utils.R")
 source("R/qc_utils.R")
 source("R/doublet_utils.R")
+source("R/preprocess_utils.R")
+source("R/integration_utils.R")
+source("R/marker_utils.R")
 
 ###Check Dependencies
 check_required_packages(c(
@@ -81,5 +84,72 @@ AD_CAA <- annotate_doublets_by_sample(
 summarize_doublets(AD_CAA, group_col = "orig.ident")
 
 AD_CAA <- keep_singlets(AD_CAA)
+
+##SCT Transform 
+check_required_packages(c(
+  "sctransform",
+  "harmony",
+  "clustree"
+))
+
+options(future.globals.maxSize = 5000 * 1024^2)
+
+AD_CAA <- run_sct_pipeline(
+  seu = AD_CAA,
+  vst_flavor = "v2",
+  npcs = 22,
+  dims = 1:20,
+  resolution = 0.5,
+  assay = "RNA"
+)
+
+plot_clusters(AD_CAA)
+
+#Harmony Integration for Batch Correction
+AD_CAA <- run_harmony_clustering(
+  seu = AD_CAA,
+  group_var = "condition",
+  assay = "SCT",
+  dims = 1:20,
+  resolution = 0.5
+)
+
+plot_clusters(AD_CAA, reduction = "umap")
+
+#Clustree to find adequate resolution
+AD_CAA <- test_clustering_resolutions(
+  seu = AD_CAA,
+  reduction = "harmony",
+  dims = 1:20,
+  resolutions = c(0.025, 0.05, 0.1, 0.3, 0.5, 0.7, 0.9, 1.1, 1.3)
+)
+
+plot_clustree(AD_CAA, prefix = "SCT_snn_res.")
+
+AD_CAA <- run_harmony_clustering(
+  seu = AD_CAA,
+  group_var = "condition",
+  assay = "SCT",
+  dims = 1:20,
+  resolution = 0.5
+)
+
+#Find all markers
+AD_CAA <- prepare_rna_for_markers(
+  seu = AD_CAA,
+  assay = "RNA",
+  run_join_layers = TRUE
+)
+
+AD_CAA_markers <- find_cluster_markers(
+  seu = AD_CAA,
+  assay = "RNA",
+  only_pos = TRUE
+)
+
+save_marker_table(
+  markers = AD_CAA_markers,
+  file = "AD_CAA_cluster_markers.txt"
+)
 
 
