@@ -225,8 +225,26 @@ merge_identity_labels <- function(seu,
 #' @export
 save_subset_by_idents <- function(seu,
                                   idents,
-                                  file = NULL) {
+                                  file = NULL,
+                                  group_col = NULL,
+                                  groups = NULL) {
+  if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Package 'Seurat' is required.", call. = FALSE)
+  }
+
   seu_sub <- subset(seu, idents = idents)
+
+  if (!is.null(group_col) && !is.null(groups)) {
+    if (!group_col %in% colnames(seu_sub@meta.data)) {
+      stop("group_col not found in metadata: ", group_col, call. = FALSE)
+    }
+
+    keep_cells <- rownames(seu_sub@meta.data)[
+      seu_sub@meta.data[[group_col]] %in% groups
+    ]
+
+    seu_sub <- subset(seu_sub, cells = keep_cells)
+  }
 
   if (!is.null(file)) {
     dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
