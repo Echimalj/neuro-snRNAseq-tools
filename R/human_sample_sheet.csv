@@ -1,4 +1,4 @@
-sample_id,sample_path,condition,batch,species,use_soupx
-Case1,/path/to/Case1,Control,Batch1,human,TRUE
-Case2,/path/to/Case2,AD_CAA,Batch1,human,TRUE
-Case3,/path/to/Case3,Control,Batch1,human,FALSE
+sample_id,sample_path,condition,batch,species,use_soupx,orig.ident,genotype,FDX
+Case1,/path/to/Case1,Control,Batch1,human,TRUE,1,4/4,Control
+Case2,/path/to/Case2,AD_CAA,Batch1,human,TRUE,2,3/4,AD_CAA
+Case3,/path/to/Case3,Control,Batch1,human,FALSE,3,3/3,Control
