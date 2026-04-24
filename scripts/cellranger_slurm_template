@@ -1,0 +1,38 @@
+#!/bin/bash
+#SBATCH --job-name=cellranger_ADCAA 
+#SBATCH -p general 
+#SBATCH --output=cellrangerAD_%A_%a.out 
+#SBATCH --error=cellrangerAD_%A_%a.err 
+#SBATCH --array=1-8 #SBATCH --mail-type=ALL 
+#SBATCH --mail-user=your_email@domain.com 
+#SBATCH --nodes=1 #SBATCH --ntasks=1 
+#SBATCH --cpus-per-task=8 
+#SBATCH --time=3-10:00:00 
+#SBATCH --mem=256G 
+#SBATCH -A your_allocation 
+
+
+module load cellranger/9.0.1 
+TRANSCRIPTOME="/path/to/GRCh38" 
+FASTQ_DIR="/path/to/fastqs" 
+BASE_OUTDIR="/path/to/output" 
+
+
+SAMPLES=(Sample1 Sample2 Sample3 Sample4 Sample5 Sample6 Sample7 Sample8) 
+
+
+INDEX=$((SLURM_ARRAY_TASK_ID - 1)) 
+SAMPLE=${SAMPLES[$INDEX]} 
+OUTDIR="$BASE_OUTDIR/${SAMPLE}" 
+
+
+mkdir -p "$OUTDIR" 
+
+cellranger count \ 
+  --id="$SAMPLE" \ 
+  --transcriptome="$TRANSCRIPTOME" \ 
+  --fastqs="$FASTQ_DIR" \ 
+  --sample="$SAMPLE" \ 
+  --localcores=$SLURM_CPUS_PER_TASK \ 
+  --create-bam=false \ 
+  --output-dir="$OUTDIR"
