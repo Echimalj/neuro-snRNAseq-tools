@@ -354,3 +354,9 @@ save_propeller_results(
   output_dir = "results",
   prefix = "CellTypeProportions_ADCAAvsCTRL"
 )
+
+save_checkpoint(
+  object = AD_CAA,
+  file = file.path(checkpoint_dir, "AD_CAA_final_processed.rds"),
+  reload = TRUE
+)
