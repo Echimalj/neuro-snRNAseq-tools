@@ -15,8 +15,10 @@ Reusable, modular workflows for preprocessing and analyzing single-nucleus RNA-s
 
 ## Overview
 
-This repository provides a set of reusable functions to streamline common steps in single-nucleus RNA-seq analysis, including:
+This repository provides a set of reusable functions to streamline common steps in single-nucleus RNA-seq analysis, 
+from upstream Cell Ranger processing to downstream Seurat-based analysis
 
+- HPC/Slurm-based Cell Ranger processing
 - Data loading (10x Genomics, with optional SoupX correction)
 - Metadata integration via sample sheets
 - Quality control and filtering
@@ -25,6 +27,8 @@ This repository provides a set of reusable functions to streamline common steps 
 - Batch correction with Harmony
 - Clustering and visualization
 - Marker gene identification
+- Cell type proportion testing with Speckle/propeller
+- Advanced downstream analyses, including module scoring and two-group DE testing
 
 The goal is to separate reusable computational workflows from project-specific biological analyses, enabling reproducibility and scalability across datasets.
 
