@@ -22,7 +22,8 @@ NULL
 add_volcano3d_identity <- function(seu,
                                    group_col,
                                    output_col = "celltype.group",
-                                   sep = "-") {
+                                   sep = "-",
+                                   overwrite = FALSE) {
   if (!requireNamespace("Seurat", quietly = TRUE)) {
     stop("Package 'Seurat' is required.", call. = FALSE)
   }
@@ -31,11 +32,21 @@ add_volcano3d_identity <- function(seu,
     stop("group_col not found in metadata: ", group_col, call. = FALSE)
   }
 
+  if (output_col %in% colnames(seu@meta.data) && !overwrite) {
+    message(
+      "Column '", output_col, "' already exists. ",
+      "Keeping existing column. Use overwrite = TRUE to replace it."
+    )
+    return(seu)
+  }
+
   seu[[output_col]] <- paste(
     as.character(Seurat::Idents(seu)),
     seu[[group_col]][, 1],
     sep = sep
   )
+
+  message("Created column: ", output_col)
 
   return(seu)
 }
@@ -280,12 +291,14 @@ build_volcano3d_stats_table <- function(pairwise_stats,
 #' Run volcano3D polar coordinate classification
 #'
 #' @param expr Gene x cell expression matrix.
-#' @param sample_data Metadata.
-#' @param stats_table Combined pairwise and ANOVA statistics.
-#' @param group_col Group metadata column.
+#' @param sample_data Metadata matching expression columns.
+#' @param stats_table Combined pairwise and ANOVA statistics table.
+#' @param group_col Metadata column containing group labels.
 #' @param pcutoff Adjusted p-value cutoff.
-#' @param scheme Color scheme.
+#' @param scheme Color scheme for volcano3D categories.
 #' @param labs Labels for volcano3D categories.
+#' @param pval_cols Ordered p-value columns. Default order: overall, AB, BC, CA.
+#' @param padj_cols Ordered adjusted p-value columns. Default order: overall, AB, BC, CA.
 #'
 #' @return volcano3D polar object.
 #' @export
@@ -302,13 +315,54 @@ run_volcano3d_polar_coords <- function(expr,
                                          "ns", "GroupC", "GroupC+GroupA",
                                          "GroupA", "GroupB+GroupA",
                                          "GroupB", "GroupB+GroupC"
+                                       ),
+                                       pval_cols = c(
+                                         "overall_pvalue",
+                                         "AB_pvalue",
+                                         "BC_pvalue",
+                                         "CA_pvalue"
+                                       ),
+                                       padj_cols = c(
+                                         "overall_padj",
+                                         "AB_padj",
+                                         "BC_padj",
+                                         "CA_padj"
                                        )) {
   if (!requireNamespace("volcano3D", quietly = TRUE)) {
     stop("Package 'volcano3D' is required.", call. = FALSE)
   }
 
-  pval_cols <- grep("pvalue|overall_pvalue", colnames(stats_table), value = TRUE)
-  padj_cols <- grep("padj|overall_padj", colnames(stats_table), value = TRUE)
+  if (!group_col %in% colnames(sample_data)) {
+    stop("group_col not found in sample_data: ", group_col, call. = FALSE)
+  }
+
+  missing_cols <- setdiff(c(pval_cols, padj_cols), colnames(stats_table))
+
+  if (length(missing_cols) > 0) {
+    stop(
+      "Missing required volcano3D statistics columns: ",
+      paste(missing_cols, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  if (!all(rownames(stats_table) %in% rownames(expr))) {
+    stop(
+      "Not all genes in stats_table are present in expr rownames.",
+      call. = FALSE
+    )
+  }
+
+  expr <- expr[rownames(stats_table), , drop = FALSE]
+
+  if (!is.null(sample_data$ID)) {
+    if (!all(colnames(expr) == sample_data$ID)) {
+      stop(
+        "Expression matrix columns must match sample_data$ID in the same order.",
+        call. = FALSE
+      )
+    }
+  }
 
   p_matrix <- stats_table[, pval_cols, drop = FALSE]
   padj_matrix <- stats_table[, padj_cols, drop = FALSE]
@@ -325,7 +379,6 @@ run_volcano3d_polar_coords <- function(expr,
 
   return(polar)
 }
-
 
 #' Save volcano3D significance category gene lists
 #'
