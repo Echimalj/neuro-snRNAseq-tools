@@ -5,6 +5,9 @@ source("R/speckle_utils.R")
 source("R/subcluster_utils.R") #Advanced Functions
 source("R/atlas_similarity_utils.R")
 source("R/annotation_utils.R") #Advanced Functions
+source("R/pseudobulk_utils.R")
+source("R/overlap_utils.R")
+
 
 check_required_packages(c(
   "Seurat",
@@ -304,6 +307,70 @@ AD_CAA <- add_collapsed_cellclass(
   output_col = "collapsed_cellclass",
   keep = character(),
   set_idents = TRUE
+)
+
+#Pseudobulk Analysis by cell type
+pb_ex <- run_pb_deseq2(
+  seu = AD_CAA,
+  cellclass = "ExNeuron",
+  cellclass_col = "cellclass",
+  donor_col = "orig.ident",
+  group_col = "FDX",
+  group_levels = c("Control", "AD+CAA")
+)
+
+pb_inh <- run_pb_deseq2(
+  seu = AD_CAA,
+  cellclass = "InhNeuron",
+  cellclass_col = "cellclass",
+  donor_col = "orig.ident",
+  group_col = "FDX",
+  group_levels = c("Control", "AD+CAA")
+)
+
+ex_up_pb <- get_sig_up(pb_ex$res)
+ex_down_pb <- get_sig_down(pb_ex$res)
+
+inh_up_pb <- get_sig_up(pb_inh$res)
+inh_down_pb <- get_sig_down(pb_inh$res)
+
+#Fischers Overlap Test (Need Comparison Gene List)
+tests <- run_fisher_overlap_grid(
+  query_sets = list(
+    ExNeuron_ADCAA_up = ex_up_pb,
+    ExNeuron_ADCAA_down = ex_down_pb,
+    InhNeuron_ADCAA_up = inh_up_pb,
+    InhNeuron_ADCAA_down = inh_down_pb
+  ),
+  reference_sets = list(
+    Reference1_UP = Reference1_UP,
+    Reference2_UP = Reference2_UP
+  ),
+  universe = unique(c(pb_ex$res$gene, pb_inh$res$gene))
+)
+
+tests
+
+
+summary_all <- run_cellclass_overlap(
+  seu = AD_CAA,
+  celltype_col = "cellclass",
+  reference_sets = list(
+    Reference1_UP = Reference1_UP,
+    Reference2_UP = Reference2_UP
+  ),
+  direction = "up",
+  min_pct = 0.1,
+  min_cells_group = 10,
+  padj_cutoff = 0.05
+)
+
+write.table(
+  summary_all,
+  file = "OverlapFishers_Test.txt",
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE
 )
 
 
