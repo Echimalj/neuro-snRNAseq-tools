@@ -13,8 +13,8 @@
 # ------------------------------------------------------------
 # Method Attribution:
 # This workflow is adapted from the volcano3D R package:
- :contentReference[oaicite:0]{index=0}
- Developed by :contentReference[oaicite:1]{index=1}
+# https://github.com/KatrionaGoldmann/volcano3D
+# Developed by : KatrionaGoldmann
 #
 # Original concept and discussion:
 # https://github.com/KatrionaGoldmann/volcano3D/issues/15
