@@ -157,20 +157,24 @@ run_pb_deseq2 <- function(seu,
 
   dds <- DESeq2::DESeq(dds)
 
-  res <- DESeq2::results(
-    dds,
-    contrast = c("group", group_levels[2], group_levels[1])
-  ) |>
-    as.data.frame() |>
-    tibble::rownames_to_column("gene") |>
-    dplyr::mutate(cellclass = cellclass)
+  res_default <- DESeq2::results(
+  dds,
+  contrast = c("group", group_levels[2], group_levels[1])
+)
 
-  return(list(
-    dds = dds,
-    res = res,
-    pb_counts = count_mat,
-    coldata = coldata
-  ))
+res_noIF <- DESeq2::results(
+  dds,
+  contrast = c("group", group_levels[2], group_levels[1]),
+  independentFiltering = FALSE
+)
+
+res <- as.data.frame(res_default) |>
+  tibble::rownames_to_column("gene") |>
+  dplyr::mutate(
+    padj_noIF = res_noIF$padj,
+    cellclass = cellclass,
+    padj_safe = ifelse(is.na(padj), 1, padj)
+  )
 }
 
 #' Run pseudobulk DESeq2 across multiple cell classes
@@ -198,16 +202,18 @@ run_pb_deseq2_by_cellclass <- function(seu,
 #' @param res_df DESeq2 result data frame.
 #' @param padj_cutoff Adjusted p-value cutoff.
 #' @param lfc_cutoff Log2FC cutoff.
+#' @param padj_col Column to use for adjusted p-values.
 #'
 #' @return Character vector of genes.
 #' @export
 get_sig_up <- function(res_df,
                        padj_cutoff = 0.05,
-                       lfc_cutoff = 0) {
+                       lfc_cutoff = 0,
+                       padj_col = "padj") {
   res_df |>
     dplyr::filter(
-      !is.na(.data$padj),
-      .data$padj < padj_cutoff,
+      !is.na(.data[[padj_col]]),
+      .data[[padj_col]] < padj_cutoff,
       .data$log2FoldChange > lfc_cutoff
     ) |>
     dplyr::pull(.data$gene) |>
@@ -219,16 +225,18 @@ get_sig_up <- function(res_df,
 #' @param res_df DESeq2 result data frame.
 #' @param padj_cutoff Adjusted p-value cutoff.
 #' @param lfc_cutoff Log2FC cutoff.
+#' @param padj_col Column to use for adjusted p-values.
 #'
 #' @return Character vector of genes.
 #' @export
 get_sig_down <- function(res_df,
                          padj_cutoff = 0.05,
-                         lfc_cutoff = 0) {
+                         lfc_cutoff = 0,
+                         padj_col = "padj") {
   res_df |>
     dplyr::filter(
-      !is.na(.data$padj),
-      .data$padj < padj_cutoff,
+      !is.na(.data[[padj_col]]),
+      .data[[padj_col]] < padj_cutoff,
       .data$log2FoldChange < -lfc_cutoff
     ) |>
     dplyr::pull(.data$gene) |>
