@@ -175,6 +175,12 @@ res <- as.data.frame(res_default) |>
     cellclass = cellclass,
     padj_safe = ifelse(is.na(padj), 1, padj)
   )
+  return(list(
+  dds = dds,
+  res = res,
+  pb_counts = count_mat,
+  coldata = coldata
+))
 }
 
 #' Run pseudobulk DESeq2 across multiple cell classes
