@@ -373,4 +373,40 @@ write.table(
   row.names = FALSE
 )
 
+#GSEA and GSEA HeatMap
+source("R/gsea_utils.R")
+
+pathways <- load_msigdb_pathways(
+  species = "Homo sapiens",
+  category = "C5",
+  subcategory = "GO:BP"
+)
+
+gsea_all <- run_fgsea_by_celltype(
+  df = all_res,
+  pathways = pathways,
+  celltype_col = "cellclass",
+  gene_col = "gene",
+  stat_col = "stat",
+  output_file = "results/gsea/AD_CAA_GSEA_GO_BP_by_cellclass.csv"
+)
+
+celltype_order <- c(
+  "InhNeuron1", "InhNeuron4", "InhNeuron2",
+  "Astrocytes3", "Astrocytes4",
+  "Microglia1", "Microglia3",
+  "OPC1", "OPC2",
+  "Oligodendrocytes1", "Oligodendrocytes2", "Oligodendrocytes4",
+  "Pericytes"
+)
+
+gsea_heatmaps <- run_gsea_directional_heatmaps(
+  gsea_df = gsea_all,
+  output_dir = "results/gsea",
+  positive_label = "AD+CAA enriched",
+  negative_label = "Control enriched",
+  celltype_order = celltype_order,
+  prefix = "GSEA_GO_BP_AD_CAA_vs_Control",
+  n_top = 20
+)
 
