@@ -3,6 +3,12 @@
 #' Wrappers for running fgsea across cell types and generating
 #' direction-specific enrichment heatmaps.
 #'
+#' Supports switchable MSigDB libraries:
+#' - GO Biological Process: "bp"
+#' - Hallmark: "hallmark"
+#' - Reactome: "reactome"
+#' - WikiPathways: "wikipathways"
+#'
 #' @keywords internal
 NULL
 
@@ -11,9 +17,93 @@ NULL
 # Gene set loading
 # ============================================================
 
-#' Load MSigDB pathways using msigdbr
+#' Get MSigDB pathway configuration
 #'
+#' @param library One of "bp", "hallmark", "reactome", "wikipathways".
+#'
+#' @return List with category, subcategory, label, and default NES cutoff.
+#' @export
+get_gsea_library_config <- function(library = c(
+  "bp",
+  "hallmark",
+  "reactome",
+  "wikipathways"
+)) {
+  library <- match.arg(library)
+
+  switch(
+    library,
+    bp = list(
+      category = "C5",
+      subcategory = "GO:BP",
+      label = "GO_BP",
+      nes_cutoff = 1.5
+    ),
+    hallmark = list(
+      category = "H",
+      subcategory = NULL,
+      label = "HALLMARK",
+      nes_cutoff = 1.0
+    ),
+    reactome = list(
+      category = "C2",
+      subcategory = "CP:REACTOME",
+      label = "REACTOME",
+      nes_cutoff = 1.5
+    ),
+    wikipathways = list(
+      category = "C2",
+      subcategory = "CP:WIKIPATHWAYS",
+      label = "WIKIPATHWAYS",
+      nes_cutoff = 1.5
+    )
+  )
+}
+
+
+#' Load switchable MSigDB pathways
+#'
+#' @param library One of "bp", "hallmark", "reactome", "wikipathways".
 #' @param species Species name, e.g. "Homo sapiens" or "Mus musculus".
+#' @param gene_col Gene column to use.
+#'
+#' @return Named list of pathways.
+#' @export
+get_msigdb_pathways <- function(library = c(
+  "bp",
+  "hallmark",
+  "reactome",
+  "wikipathways"
+),
+species = "Homo sapiens",
+gene_col = "gene_symbol") {
+  if (!requireNamespace("msigdbr", quietly = TRUE)) {
+    stop("Package 'msigdbr' is required.", call. = FALSE)
+  }
+
+  library <- match.arg(library)
+  cfg <- get_gsea_library_config(library)
+
+  if (is.null(cfg$subcategory)) {
+    msig <- msigdbr::msigdbr(
+      species = species,
+      category = cfg$category
+    )
+  } else {
+    msig <- msigdbr::msigdbr(
+      species = species,
+      category = cfg$category,
+      subcategory = cfg$subcategory
+    )
+  }
+
+  split(msig[[gene_col]], msig$gs_name)
+}
+
+
+#' Load MSigDB pathways using explicit category/subcategory
+#'
+#' @param species Species name.
 #' @param category MSigDB category.
 #' @param subcategory MSigDB subcategory.
 #' @param gene_col Gene column to use.
@@ -28,11 +118,18 @@ load_msigdb_pathways <- function(species = "Homo sapiens",
     stop("Package 'msigdbr' is required.", call. = FALSE)
   }
 
-  msig <- msigdbr::msigdbr(
-    species = species,
-    category = category,
-    subcategory = subcategory
-  )
+  if (is.null(subcategory)) {
+    msig <- msigdbr::msigdbr(
+      species = species,
+      category = category
+    )
+  } else {
+    msig <- msigdbr::msigdbr(
+      species = species,
+      category = category,
+      subcategory = subcategory
+    )
+  }
 
   split(msig[[gene_col]], msig$gs_name)
 }
@@ -51,6 +148,8 @@ load_msigdb_pathways <- function(species = "Homo sapiens",
 #' @param min_size Minimum pathway size.
 #' @param max_size Maximum pathway size.
 #' @param remove_ensembl Logical. Remove Ensembl IDs when gene symbols are expected.
+#' @param jitter_ties Logical. Add tiny jitter to avoid tied ranks.
+#' @param seed Random seed for rank jitter.
 #'
 #' @return fgsea result tibble.
 #' @export
@@ -60,7 +159,9 @@ run_fgsea_one_celltype <- function(df,
                                    stat_col = "stat",
                                    min_size = 15,
                                    max_size = 500,
-                                   remove_ensembl = TRUE) {
+                                   remove_ensembl = TRUE,
+                                   jitter_ties = TRUE,
+                                   seed = 123) {
   if (!requireNamespace("fgsea", quietly = TRUE)) {
     stop("Package 'fgsea' is required.", call. = FALSE)
   }
@@ -104,6 +205,12 @@ run_fgsea_one_celltype <- function(df,
 
   ranks <- df_ranked[[stat_col]]
   names(ranks) <- df_ranked[[gene_col]]
+
+  if (jitter_ties) {
+    set.seed(seed)
+    ranks <- ranks + stats::rnorm(length(ranks), sd = 1e-8)
+  }
+
   ranks <- sort(ranks, decreasing = TRUE)
 
   fgsea::fgsea(
@@ -137,6 +244,9 @@ run_fgsea_by_celltype <- function(df,
                                   ...) {
   if (!requireNamespace("purrr", quietly = TRUE)) {
     stop("Package 'purrr' is required.", call. = FALSE)
+  }
+  if (!requireNamespace("dplyr", quietly = TRUE)) {
+    stop("Package 'dplyr' is required.", call. = FALSE)
   }
 
   if (!celltype_col %in% colnames(df)) {
@@ -185,18 +295,35 @@ run_fgsea_by_celltype <- function(df,
 # GSEA cleaning/filtering
 # ============================================================
 
+#' Clean pathway names across MSigDB libraries
+#'
+#' @param x Pathway names.
+#'
+#' @return Cleaned pathway names.
+#' @export
+clean_pathway_names <- function(x) {
+  x |>
+    gsub("^GOBP_", "", x = _) |>
+    gsub("^GO_", "", x = _) |>
+    gsub("^HALLMARK_", "", x = _) |>
+    gsub("^REACTOME_", "", x = _) |>
+    gsub("^WP_", "", x = _) |>
+    gsub("^WIKIPATHWAYS_", "", x = _) |>
+    gsub("_", " ", x = _) |>
+    tools::toTitleCase()
+}
+
+
 #' Clean GO-style pathway names
+#'
+#' Kept for backwards compatibility.
 #'
 #' @param x Pathway names.
 #'
 #' @return Cleaned pathway names.
 #' @export
 clean_go_names <- function(x) {
-  x |>
-    gsub("^GOBP_", "", x = _) |>
-    gsub("^GO_", "", x = _) |>
-    gsub("_", " ", x = _) |>
-    tools::toTitleCase()
+  clean_pathway_names(x)
 }
 
 
@@ -219,9 +346,13 @@ filter_gsea_results <- function(gsea_df,
                                 max_size = 500,
                                 positive_label = "Condition1 enriched",
                                 negative_label = "Condition2 enriched") {
+  if (!requireNamespace("dplyr", quietly = TRUE)) {
+    stop("Package 'dplyr' is required.", call. = FALSE)
+  }
+
   gsea_df |>
     dplyr::mutate(
-      pathway_clean = clean_go_names(.data$pathway),
+      pathway_clean = clean_pathway_names(.data$pathway),
       direction = dplyr::case_when(
         .data$NES > 0 ~ positive_label,
         .data$NES < 0 ~ negative_label,
@@ -259,10 +390,17 @@ build_gsea_direction_heatmap_matrix <- function(gsea_df,
                                                 n_top = 20,
                                                 celltype_order = NULL,
                                                 celltype_col = "cellclass") {
+  if (!requireNamespace("dplyr", quietly = TRUE)) {
+    stop("Package 'dplyr' is required.", call. = FALSE)
+  }
+  if (!requireNamespace("tidyr", quietly = TRUE)) {
+    stop("Package 'tidyr' is required.", call. = FALSE)
+  }
+
   direction <- match.arg(direction)
 
   gsea_clean <- gsea_df |>
-    dplyr::mutate(pathway_clean = clean_go_names(.data$pathway))
+    dplyr::mutate(pathway_clean = clean_pathway_names(.data$pathway))
 
   if (direction == "positive") {
     top_paths <- filtered_df |>
@@ -307,6 +445,12 @@ build_gsea_direction_heatmap_matrix <- function(gsea_df,
     )
 
   heat_mat <- as.data.frame(heat_wide)
+
+  if (nrow(heat_mat) == 0) {
+    warning("No pathways passed filters for direction: ", direction)
+    return(matrix(nrow = 0, ncol = 0))
+  }
+
   rownames(heat_mat) <- heat_mat$pathway_clean
   heat_mat <- heat_mat[, -1, drop = FALSE]
 
@@ -348,6 +492,11 @@ plot_gsea_direction_heatmap <- function(mat,
 
   direction <- match.arg(direction)
 
+  if (nrow(mat) == 0 || ncol(mat) == 0) {
+    warning("Empty matrix supplied to plot_gsea_direction_heatmap(). Skipping plot.")
+    return(invisible(NULL))
+  }
+
   heat_color <- if (direction == "positive") positive_color else negative_color
 
   if (is.null(title)) {
@@ -386,6 +535,9 @@ plot_gsea_direction_heatmap <- function(mat,
 #' @param celltype_order Optional celltype order.
 #' @param prefix File prefix.
 #' @param n_top Number of pathways per heatmap.
+#' @param padj_cutoff Adjusted p-value cutoff.
+#' @param nes_cutoff Absolute NES cutoff.
+#' @param max_break Maximum heatmap scale.
 #'
 #' @return List containing filtered table and heatmap matrices.
 #' @export
@@ -472,5 +624,113 @@ run_gsea_directional_heatmaps <- function(gsea_df,
     negative_matrix = negative_mat,
     positive_plot = p_pos,
     negative_plot = p_neg
+  ))
+}
+
+
+# ============================================================
+# Switchable full workflow
+# ============================================================
+
+#' Run switchable GSEA workflow
+#'
+#' Runs fgsea by cell type and creates separate positive/negative NES heatmaps.
+#'
+#' @param df Combined DEG/stat table.
+#' @param gsea_library One of "bp", "hallmark", "reactome", "wikipathways".
+#' @param species Species name.
+#' @param celltype_col Cell type column.
+#' @param gene_col Gene column.
+#' @param stat_col Ranking statistic column.
+#' @param celltypes_interest Optional cell types to keep.
+#' @param celltype_order Optional heatmap column order.
+#' @param output_dir Output directory.
+#' @param positive_label Positive NES label.
+#' @param negative_label Negative NES label.
+#' @param n_top Number of pathways per heatmap.
+#' @param padj_cutoff Adjusted p-value cutoff.
+#' @param nes_cutoff Optional NES cutoff. If NULL, library default is used.
+#' @param min_size Minimum pathway size.
+#' @param max_size Maximum pathway size.
+#' @param max_break Maximum heatmap scale.
+#'
+#' @return List with GSEA table and heatmap outputs.
+#' @export
+run_switchable_gsea_workflow <- function(df,
+                                         gsea_library = c(
+                                           "bp",
+                                           "hallmark",
+                                           "reactome",
+                                           "wikipathways"
+                                         ),
+                                         species = "Homo sapiens",
+                                         celltype_col = "cellclass",
+                                         gene_col = "gene",
+                                         stat_col = "stat",
+                                         celltypes_interest = NULL,
+                                         celltype_order = NULL,
+                                         output_dir = "results/gsea",
+                                         positive_label = "AD+CAA enriched",
+                                         negative_label = "Control enriched",
+                                         n_top = 20,
+                                         padj_cutoff = 0.05,
+                                         nes_cutoff = NULL,
+                                         min_size = 15,
+                                         max_size = 500,
+                                         max_break = 2.5) {
+  gsea_library <- match.arg(gsea_library)
+
+  cfg <- get_gsea_library_config(gsea_library)
+
+  if (is.null(nes_cutoff)) {
+    nes_cutoff <- cfg$nes_cutoff
+  }
+
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+  if (!is.null(celltypes_interest)) {
+    df <- df |>
+      dplyr::filter(.data[[celltype_col]] %in% celltypes_interest)
+  }
+
+  pathways <- get_msigdb_pathways(
+    library = gsea_library,
+    species = species
+  )
+
+  gsea_all <- run_fgsea_by_celltype(
+    df = df,
+    pathways = pathways,
+    celltype_col = celltype_col,
+    gene_col = gene_col,
+    stat_col = stat_col,
+    min_size = min_size,
+    max_size = max_size,
+    output_file = file.path(
+      output_dir,
+      paste0("GSEA_", cfg$label, "_by_cellclass.csv")
+    )
+  )
+
+  heatmaps <- run_gsea_directional_heatmaps(
+    gsea_df = gsea_all,
+    output_dir = output_dir,
+    positive_label = positive_label,
+    negative_label = negative_label,
+    celltype_order = celltype_order,
+    prefix = paste0("GSEA_", cfg$label),
+    n_top = n_top,
+    padj_cutoff = padj_cutoff,
+    nes_cutoff = nes_cutoff,
+    max_break = max_break
+  )
+
+  invisible(list(
+    library = gsea_library,
+    label = cfg$label,
+    nes_cutoff = nes_cutoff,
+    pathways = pathways,
+    gsea_all = gsea_all,
+    heatmaps = heatmaps
   ))
 }
